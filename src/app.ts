@@ -11,6 +11,6 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-app.use('/api/url', urlRouter);
+app.use('/', urlRouter);
 
 export default app;

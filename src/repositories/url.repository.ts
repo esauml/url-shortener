@@ -1,0 +1,14 @@
+import { ShortUrl } from "../types/url";
+
+const urls = new Map<string, ShortUrl>();
+
+export const UrlRepository = {
+    save(data: ShortUrl) {
+        urls.set(data.code, data);
+        return data;
+    },
+
+    findByCode(code: string) {
+        return urls.get(code);
+    }
+};
