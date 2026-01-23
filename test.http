@@ -1,0 +1,12 @@
+### 
+
+GET http://localhost:3000/api/url/abc123
+
+
+### 
+POST http://localhost:3000/api/url
+Content-Type: application/json
+
+{
+    "url": "https://www.example.com/some/long/url"
+}
