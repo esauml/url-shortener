@@ -1,6 +1,7 @@
 import { ShortUrl } from "../types/url";
 
 const urls = new Map<string, ShortUrl>();
+let currentId = 0; // In production, use database auto-increment
 
 export const UrlRepository = {
     save(data: ShortUrl) {
@@ -10,5 +11,9 @@ export const UrlRepository = {
 
     findByCode(code: string) {
         return urls.get(code);
+    },
+
+    getNextId(): number {
+        return ++currentId;
     }
 };

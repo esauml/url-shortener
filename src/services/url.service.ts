@@ -1,4 +1,4 @@
-import { generateCode } from "../utils/generateCode";
+import { generateCodeFromId } from "../utils/generateCode";
 import { isValidUrl } from "../utils/validateUrl";
 import { UrlRepository } from "../repositories/url.repository";
 import { ShortUrl } from "../types/url";
@@ -9,7 +9,10 @@ export const UrlService = {
             throw new Error("Invalid URL");
         }
 
-        const code = generateCode();
+        // Get next incremental ID and generate collision-free code
+        const id = UrlRepository.getNextId();
+        const code = generateCodeFromId(id);
+
         const shortUrl: ShortUrl = {
             code,
             originalUrl,
