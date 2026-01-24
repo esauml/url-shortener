@@ -4,26 +4,25 @@ import { UrlRepository } from "../repositories/url.repository";
 import { ShortUrl } from "../types/url";
 
 export const UrlService = {
-    createShortUrl(originalUrl: string): ShortUrl {
+    async createShortUrl(originalUrl: string): Promise<ShortUrl> {
         if (!isValidUrl(originalUrl)) {
             throw new Error("Invalid URL");
         }
 
         // Get next incremental ID and generate collision-free code
-        const id = UrlRepository.getNextId();
+        const id = await UrlRepository.getNextId();
         const code = generateCodeFromId(id);
 
-        const shortUrl: ShortUrl = {
+        const shortUrl: Omit<ShortUrl, "createdAt"> = {
             code,
             originalUrl,
-            createdAt: new Date()
         };
 
-        return UrlRepository.save(shortUrl);
+        return await UrlRepository.save(shortUrl);
     },
 
-    getOriginalUrl(code: string): string | null {
-        const record = UrlRepository.findByCode(code);
+    async getOriginalUrl(code: string): Promise<string | null> {
+        const record = await UrlRepository.findByCode(code);
         return record?.originalUrl ?? null;
     }
 };

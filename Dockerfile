@@ -5,9 +5,13 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY prisma ./prisma
 
 # Install dependencies
 RUN npm install
+
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Copy source code
 COPY . .
@@ -24,7 +28,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
+COPY prisma ./prisma
 RUN npm ci --only=production
+
+# Generate Prisma Client
+RUN npx prisma generate
 
 COPY . .
 RUN npm run build
@@ -44,5 +52,5 @@ COPY --from=builder /app/dist ./dist
 # Expose port
 EXPOSE 3000
 
-# Start production server
-CMD ["npm", "start"]
+# Start production server with migrations
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
