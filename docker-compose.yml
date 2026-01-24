@@ -26,13 +26,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    container_name: url-shortener-dev
     ports:
-      - "3000:3000"
+      - "3000-3005:3000"
     volumes:
-      # Mount source code for hot reloading
       - .:/app
-      # Prevent node_modules from being overwritten
       - /app/node_modules
     environment:
       - NODE_ENV=development
@@ -45,6 +42,21 @@ services:
         condition: service_healthy
     networks:
       - url-shortener-network
+    deploy:
+      replicas: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: url-shortener-lb
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - url-shortener-network
+    restart: unless-stopped
 
 volumes:
   postgres-data:

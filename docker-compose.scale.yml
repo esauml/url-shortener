@@ -1,0 +1,23 @@
+version: "3.8"
+
+# Extended compose file for scaling
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.scale.yml up --scale app=5
+
+services:
+  app:
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  nginx:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
