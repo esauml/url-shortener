@@ -1,0 +1,121 @@
+export class Snowflake {
+  private static readonly EPOCH = 1704067200000n;
+
+  private static readonly WORKER_ID_BITS = 10n;
+  private static readonly SEQUENCE_BITS = 12n;
+
+  private static readonly MAX_WORKER_ID =
+    (1n << Snowflake.WORKER_ID_BITS) - 1n;
+
+  private static readonly MAX_SEQUENCE =
+    (1n << Snowflake.SEQUENCE_BITS) - 1n;
+
+  private static readonly WORKER_ID_SHIFT =
+    Snowflake.SEQUENCE_BITS;
+
+  private static readonly TIMESTAMP_SHIFT =
+    Snowflake.SEQUENCE_BITS + Snowflake.WORKER_ID_BITS;
+
+  private lastTimestamp = -1n;
+  private sequence = 0n;
+
+  constructor(private readonly workerId: number) {
+    if (
+      workerId < 0 ||
+      BigInt(workerId) > Snowflake.MAX_WORKER_ID
+    ) {
+      throw new Error(
+        `workerId must be between 0 and ${Snowflake.MAX_WORKER_ID}`
+      );
+    }
+  }
+
+  generate(): bigint {
+    let timestamp = this.currentTimestamp();
+
+    if (timestamp < this.lastTimestamp) {
+      throw new Error(
+        `Clock moved backwards. Refusing for ${
+          this.lastTimestamp - timestamp
+        } ms`
+      );
+    }
+
+    if (timestamp === this.lastTimestamp) {
+      this.sequence = (this.sequence + 1n) & Snowflake.MAX_SEQUENCE;
+
+      if (this.sequence === 0n) {
+        timestamp = this.waitNextMillis(timestamp);
+      }
+    } else {
+      this.sequence = 0n;
+    }
+
+    this.lastTimestamp = timestamp;
+
+    return (
+      (timestamp << Snowflake.TIMESTAMP_SHIFT) |
+      (BigInt(this.workerId) << Snowflake.WORKER_ID_SHIFT) |
+      this.sequence
+    );
+  }
+
+  private currentTimestamp(): bigint {
+    return BigInt(Date.now()) - Snowflake.EPOCH;
+  }
+
+  private waitNextMillis(current: bigint): bigint {
+    let ts = this.currentTimestamp();
+    while (ts <= current) {
+      ts = this.currentTimestamp();
+    }
+    return ts;
+  }
+}
+
+/**
+ * Convert a bigint to base62 string
+ */
+export function toBase62(num: bigint): string {
+  const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  if (num === 0n) return BASE62_CHARS[0]!;
+
+  let result = '';
+  while (num > 0n) {
+    result = BASE62_CHARS[Number(num % 62n)] + result;
+    num = num / 62n;
+  }
+  return result;
+}
+
+/**
+ * Factory function to create Snowflake generator based on environment
+ */
+export function createSnowflake(): Snowflake {
+    const workerId = getWorkerIdFromEnvironment();
+    const snowflake = new Snowflake(workerId);
+    console.log(`Snowflake generator initialized: Worker ID=${workerId}`);
+    return snowflake;
+}
+
+function getWorkerIdFromEnvironment(): number {
+    if (process.env.WORKER_ID) {
+        return parseInt(process.env.WORKER_ID, 10);
+    }
+
+    const hostname = process.env.HOSTNAME || '';
+    const match = hostname.match(/-(\d+)$/);
+    if (match && match[1]) {
+        return parseInt(match[1], 10) % 1024;
+    }
+
+    if (process.env.PORT) {
+        const port = parseInt(process.env.PORT, 10);
+        if (port >= 3000) {
+            return (port - 3000) % 1024;
+        }
+    }
+
+    console.warn('No WORKER_ID, HOSTNAME, or PORT found. Using default worker ID: 0');
+    return 0;
+}

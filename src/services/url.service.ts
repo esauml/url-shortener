@@ -1,7 +1,9 @@
-import { generateCodeFromId } from "../utils/generateCode";
 import { isValidUrl } from "../utils/validateUrl";
 import { UrlRepository } from "../repositories/url.repository";
 import { ShortUrl } from "../types/url";
+import { createSnowflake, toBase62 } from "../utils/snowflake";
+
+const snowflake = createSnowflake();
 
 export const UrlService = {
     async createShortUrl(originalUrl: string): Promise<ShortUrl> {
@@ -9,9 +11,8 @@ export const UrlService = {
             throw new Error("Invalid URL");
         }
 
-        // Get next incremental ID and generate collision-free code
-        const id = await UrlRepository.getNextId();
-        const code = generateCodeFromId(id);
+        const id = snowflake.generate();
+        const code = toBase62(id)
 
         const shortUrl: Omit<ShortUrl, "createdAt"> = {
             code,

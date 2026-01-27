@@ -35,6 +35,7 @@ services:
       - NODE_ENV=development
       - PORT=3000
       - DATABASE_URL=postgresql://urlshortener:urlshortener@postgres:5432/urlshortener?schema=public
+      - DATACENTER_ID=0
     command: sh -c "npx prisma migrate deploy && npm run dev"
     restart: unless-stopped
     depends_on:

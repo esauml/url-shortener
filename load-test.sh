@@ -20,7 +20,7 @@ command -v curl >/dev/null 2>&1 || { echo "❌ curl is required but not installe
 # Function to create shortened URL
 create_url() {
     local id=$1
-    curl -s -X POST "$BASE_URL/shorten" \
+    curl -s -X POST "$BASE_URL" \
         -H "Content-Type: application/json" \
         -d "{\"url\":\"https://example.com/test-$id\"}" \
         -w "\nHTTP_STATUS:%{http_code}\n" 2>/dev/null
