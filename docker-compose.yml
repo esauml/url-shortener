@@ -21,6 +21,21 @@ services:
       - url-shortener-network
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: url-shortener-cache
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lfu
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - url-shortener-network
+    restart: unless-stopped
+
   migrate:
     build:
       context: .
@@ -52,11 +67,14 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://urlshortener:urlshortener@postgres:5432/urlshortener?schema=public
+      - REDIS_URL=redis://redis:6379
       - DATACENTER_ID=0
     command: sh scripts/start-with-worker-id.sh dev
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully

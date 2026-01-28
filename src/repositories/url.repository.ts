@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { ShortUrl } from "../types/url";
+import { cacheService } from "../services/cache.service";
 
 const prisma = new PrismaClient();
 
@@ -12,14 +13,27 @@ export const UrlRepository = {
             },
         });
 
-        return {
+        const shortUrl: ShortUrl = {
             code: created.code,
             originalUrl: created.originalUrl,
             createdAt: created.createdAt,
         };
+
+        // Set in cache for immediate availability
+        await cacheService.set(created.code, shortUrl);
+
+        return shortUrl;
     },
 
     async findByCode(code: string): Promise<ShortUrl | undefined> {
+        // Try cache first
+        const cached = await cacheService.get(code);
+        if (cached) {
+            console.log('Cache hit for code:', code);
+            return cached;
+        }
+
+        // Fallback to database
         const url = await prisma.shortUrl.findUnique({
             where: { code },
         });
@@ -28,11 +42,16 @@ export const UrlRepository = {
             return undefined;
         }
 
-        return {
+        const shortUrl: ShortUrl = {
             code: url.code,
             originalUrl: url.originalUrl,
             createdAt: url.createdAt,
         };
+
+        // Populate cache for next time
+        await cacheService.set(code, shortUrl);
+
+        return shortUrl;
     },
 
     async getNextId(): Promise<number> {
