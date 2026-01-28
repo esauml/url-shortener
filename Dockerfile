@@ -16,6 +16,9 @@ RUN npx prisma generate
 # Copy source code
 COPY . .
 
+# Make scripts executable
+RUN chmod +x scripts/*.sh 2>/dev/null || true
+
 # Expose port
 EXPOSE 3000
 
@@ -35,6 +38,7 @@ RUN npm ci --only=production
 RUN npx prisma generate
 
 COPY . .
+RUN chmod +x scripts/*.sh 2>/dev/null || true
 RUN npm run build
 
 # Production stage
@@ -48,9 +52,10 @@ RUN npm ci --only=production
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/scripts ./scripts
 
 # Expose port
 EXPOSE 3000
 
 # Start production server with migrations
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && sh scripts/start-with-worker-id.sh start"]
