@@ -16,23 +16,22 @@ Snowflake is a distributed ID generation algorithm originally developed by Twitt
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  1 bit  │  41 bits  │  5 bits  │  5 bits  │    12 bits         │
-│ unused  │ timestamp │datacenter│  worker  │   sequence         │
-│   (0)   │   (ms)    │    ID    │    ID    │   number           │
+│  1 bit  │  41 bits  │  10 bits  │    12 bits                    │
+│ unused  │ timestamp │  worker   │   sequence                    │
+│   (0)   │   (ms)    │    ID     │   number                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 - **Timestamp (41 bits)**: Milliseconds since custom epoch (2024-01-01)
   - Provides ~69 years of unique timestamps
-- **Datacenter ID (5 bits)**: Supports 32 different datacenters
-- **Worker ID (5 bits)**: Supports 32 workers per datacenter
+- **Worker ID (10 bits)**: Supports 1,024 unique workers
 - **Sequence (12 bits)**: 4,096 IDs per millisecond per worker
 
 ### 2. Total Capacity
-- **1,024 machines** (32 datacenters × 32 workers)
-- **4,096 IDs per millisecond** per machine
-- **~4 million IDs per second** per machine
-- **~4 billion IDs per second** across all 1,024 machines
+- **1,024 workers** (0-1023)
+- **4,096 IDs per millisecond** per worker
+- **~4 million IDs per second** per worker
+- **~4 billion IDs per second** across all 1,024 workers
 
 ## Implementation
 
@@ -58,15 +57,23 @@ Snowflake is a distributed ID generation algorithm originally developed by Twitt
 
 ## Usage
 
-### Starting the Snowflake Architecture
+### Starting with Automatic Worker IDs (Recommended)
 
 ```bash
-# Use the Snowflake-enabled Docker Compose configuration
-docker-compose -f docker-compose.snowflake.yml up --build
+# Use the default Docker Compose with scale command
+docker compose up --build --scale app=3
+
+# Worker IDs are automatically assigned via hostname hashing:
+# - Container hostname: 20e04341fcc9 → Worker ID: 412 (example)
+# - Container hostname: a8f32d1b9c4e → Worker ID: 731 (example)
+# - Container hostname: f7b89c2d4a1e → Worker ID: 156 (example)
+
+# Scale to more workers dynamically:
+docker compose up --scale app=5
 
 # The system will start:
 # - 1 PostgreSQL database
-# - 3 app workers (IDs: 0, 1, 2)
+# - N app workers (auto-assigned unique IDs)
 # - 1 Nginx load balancer (port 8080)
 ```
 
@@ -74,7 +81,7 @@ docker-compose -f docker-compose.snowflake.yml up --build
 
 ```bash
 # Create short URLs through the load balancer
-curl -X POST http://localhost:8080/api/shorten \
+curl -X POST http://localhost:8080/ \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}'
 
@@ -84,28 +91,17 @@ curl -X POST http://localhost:8080/api/shorten \
 
 ### Scaling to More Workers
 
-To add more workers, edit `docker-compose.snowflake.yml`:
+**Option 1: Dynamic Scaling (Automatic Worker IDs)**
+```bash
+# Scale up to 5 workers
+docker compose up --scale app=5
 
-```yaml
-  app-worker-3:
-    # ... same config as other workers ...
-    environment:
-      - WORKER_ID=3  # Unique ID (0-31)
-      - DATACENTER_ID=0
-    ports:
-      - "3003:3000"
-```
+# Scale down to 2 workers
+docker compose up --scale app=2
 
-And update `nginx.snowflake.conf`:
-
-```nginx
-upstream app_servers {
-    least_conn;
-    server app-worker-0:3000 max_fails=3 fail_timeout=30s;
-    server app-worker-1:3000 max_fails=3 fail_timeout=30s;
-    server app-worker-2:3000 max_fails=3 fail_timeout=30s;
-    server app-worker-3:3000 max_fails=3 fail_timeout=30s;
-}
+# Worker IDs are automatically assigned via hostname hashing
+# Each container gets a unique, deterministic ID
+# No configuration changes needed!
 ```
 
 ## Benefits
@@ -144,23 +140,35 @@ upstream app_servers {
 | **Distribution** | Single point of failure   | Fully distributed       |
 | **Collisions**   | Impossible (sequential)   | Impossible (by design)  |
 
+## Worker ID Detection
+
+The system automatically assigns worker IDs using a hash-based approach:
+
+1. **`WORKER_ID` environment variable** (explicit, highest priority)
+   - Set this to manually assign a specific worker ID (0-1023)
+   - Example: `WORKER_ID=5` → Worker ID 5
+
+2. **Automatic hash-based assignment** (default)
+   - Generates a deterministic worker ID from the container's hostname
+   - Uses MD5 hash of hostname masked to 10 bits (0-1023 range)
+   - Each unique hostname gets a unique worker ID
+   - Docker-generated hostnames like `20e04341fcc9` → Worker ID (e.g., 412)
+   - Ensures no collisions as long as hostnames are unique (guaranteed by Docker)
+   
+**Why hash-based?**
+- ✅ No configuration needed when scaling
+- ✅ Deterministic (same hostname = same ID)
+- ✅ Uniform distribution across 0-1023 range
+- ✅ No Docker socket or API access required
+- ✅ Works in any container orchestration platform
+
 ## Environment Variables
 
-| Variable        | Description                    | Default       | Range     |
-| --------------- | ------------------------------ | ------------- | --------- |
-| `WORKER_ID`     | Unique worker identifier       | Auto-detected | 0-31      |
-| `DATACENTER_ID` | Datacenter identifier          | 0             | 0-31      |
-| `HOSTNAME`      | Auto-detected worker ID source | -             | -         |
-| `PORT`          | Fallback for worker ID         | -             | 3000-3031 |
-
-## Worker ID Auto-Detection
-
-The system automatically determines worker IDs from:
-
-1. **`WORKER_ID` environment variable** (highest priority)
-2. **Hostname** (e.g., `app-worker-5` → worker ID 5)
-3. **Port number** (e.g., port 3005 → worker ID 5)
-4. **Default to 0** (for single-instance deployments)
+| Variable        | Description                        | Default            | Range  |
+| --------------- | ---------------------------------- | ------------------ | ------ |
+| `WORKER_ID`     | Unique worker identifier (manual)  | Hash of hostname   | 0-1023 |
+| `DATACENTER_ID` | Datacenter identifier              | 0                  | N/A    |
+| `HOSTNAME`      | Container hostname (used for hash) | Auto-set by Docker | -      |
 
 ## Monitoring
 
@@ -169,8 +177,16 @@ The system automatically determines worker IDs from:
 Each worker logs its ID on startup:
 
 ```bash
-docker-compose -f docker-compose.snowflake.yml logs app-worker-0
-# Look for: "Snowflake generator initialized with worker ID: 0"
+# Check logs for automatically scaled workers
+docker compose logs app | grep "Snowflake generator initialized"
+# Example output:
+# Snowflake generator initialized: Worker ID=412
+# Snowflake generator initialized: Worker ID=731
+# Snowflake generator initialized: Worker ID=156
+
+# Check a specific container
+docker compose logs url-shortener-app-1
+# Look for: "Snowflake generator initialized: Worker ID=<number>"
 ```
 
 ### Verify ID Uniqueness
@@ -178,7 +194,7 @@ docker-compose -f docker-compose.snowflake.yml logs app-worker-0
 ```bash
 # Generate 1000 URLs and check for duplicates
 for i in {1..1000}; do
-  curl -X POST http://localhost:8080/api/shorten \
+  curl -X POST http://localhost:8080/ \
     -H "Content-Type: application/json" \
     -d "{\"url\": \"https://example.com/test$i\"}" \
     -s | jq -r '.shortCode'
@@ -192,7 +208,7 @@ The existing load test scripts work with the Snowflake architecture:
 
 ```bash
 # Run advanced load test
-./load-test-advanced.sh
+./load-test.sh
 
 # Expected results with 3 workers:
 # - ~12,000+ requests/second (4,000 per worker)

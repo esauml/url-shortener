@@ -36,13 +36,6 @@ docker-compose -f docker-compose.yml -f docker-compose.scale.yml up
 # Args: [total_requests] [concurrency]
 ```
 
-**Advanced load test (using ab or wrk):**
-```bash
-./load-test-advanced.sh
-# Requires: Apache Bench (ab) or wrk
-# Install: brew install wrk (macOS)
-```
-
 ## Load Balancing Strategy
 
 Nginx uses **least_conn** algorithm, distributing requests to the server with the fewest active connections.

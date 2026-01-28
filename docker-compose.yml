@@ -1,4 +1,4 @@
-version: "3.8"
+# version: "3.8"
 
 services:
   postgres:
@@ -21,6 +21,24 @@ services:
       - url-shortener-network
     restart: unless-stopped
 
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://urlshortener:urlshortener@postgres:5432/urlshortener?schema=public
+    command: sh -c "npx prisma generate && npx prisma migrate deploy"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - url-shortener-network
+    restart: "no"
+
   app:
     build:
       context: .
@@ -33,18 +51,17 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - PORT=3000
       - DATABASE_URL=postgresql://urlshortener:urlshortener@postgres:5432/urlshortener?schema=public
       - DATACENTER_ID=0
-    command: sh -c "npx prisma migrate deploy && npm run dev"
+    command: npm run dev
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - url-shortener-network
-    deploy:
-      replicas: 3
 
   nginx:
     image: nginx:alpine

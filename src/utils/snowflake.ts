@@ -1,3 +1,5 @@
+import { getWorkerId } from "./getWorkerId";
+
 export class Snowflake {
   private static readonly EPOCH = 1704067200000n;
 
@@ -35,8 +37,7 @@ export class Snowflake {
 
     if (timestamp < this.lastTimestamp) {
       throw new Error(
-        `Clock moved backwards. Refusing for ${
-          this.lastTimestamp - timestamp
+        `Clock moved backwards. Refusing for ${this.lastTimestamp - timestamp
         } ms`
       );
     }
@@ -92,30 +93,18 @@ export function toBase62(num: bigint): string {
  * Factory function to create Snowflake generator based on environment
  */
 export function createSnowflake(): Snowflake {
-    const workerId = getWorkerIdFromEnvironment();
-    const snowflake = new Snowflake(workerId);
-    console.log(`Snowflake generator initialized: Worker ID=${workerId}`);
-    return snowflake;
+  const workerId = getWorkerIdFromEnvironment();
+  const snowflake = new Snowflake(workerId);
+  console.log(`Snowflake generator initialized: Worker ID=${workerId}`);
+  return snowflake;
 }
 
 function getWorkerIdFromEnvironment(): number {
-    if (process.env.WORKER_ID) {
-        return parseInt(process.env.WORKER_ID, 10);
-    }
+  // Priority 1: Explicit WORKER_ID environment variable
+  if (process.env.WORKER_ID) {
+    return parseInt(process.env.WORKER_ID, 10);
+  }
 
-    const hostname = process.env.HOSTNAME || '';
-    const match = hostname.match(/-(\d+)$/);
-    if (match && match[1]) {
-        return parseInt(match[1], 10) % 1024;
-    }
-
-    if (process.env.PORT) {
-        const port = parseInt(process.env.PORT, 10);
-        if (port >= 3000) {
-            return (port - 3000) % 1024;
-        }
-    }
-
-    console.warn('No WORKER_ID, HOSTNAME, or PORT found. Using default worker ID: 0');
-    return 0;
+  // Priority 2: Derive from automatically assigned
+  return getWorkerId();
 }
