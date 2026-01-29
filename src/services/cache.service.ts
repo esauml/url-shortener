@@ -3,11 +3,12 @@ import { ShortUrl } from '../types/url';
 
 class CacheService {
     private client: Redis;
-    private ttl: number = 3600; // 1 hour in seconds
+    private ttl: number;
     private isConnected: boolean = false;
 
     constructor() {
         const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+        this.ttl = parseInt(process.env.REDIS_TTL || '3600', 10);
 
         this.client = new Redis(redisUrl, {
             maxRetriesPerRequest: 3,
@@ -37,6 +38,7 @@ class CacheService {
         } catch (error) {
             console.error('Failed to connect to Redis:', error);
             this.isConnected = false;
+            throw error;
         }
     }
 
@@ -51,7 +53,11 @@ class CacheService {
                 return null;
             }
 
-            return JSON.parse(cached) as ShortUrl;
+            const parsed = JSON.parse(cached);
+            return {
+                ...parsed,
+                createdAt: new Date(parsed.createdAt)
+            };
         } catch (error) {
             console.error('Cache get error:', error);
             return null;

@@ -29,7 +29,6 @@ export const UrlRepository = {
         // Try cache first
         const cached = await cacheService.get(code);
         if (cached) {
-            console.log('Cache hit for code:', code);
             return cached;
         }
 

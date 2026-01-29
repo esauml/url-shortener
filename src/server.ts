@@ -17,20 +17,34 @@ const server = app.listen(PORT, () => {
 process.on('SIGTERM', async () => {
     console.log('SIGTERM signal received: closing HTTP server');
     server.close(async () => {
-        await UrlRepository.disconnect();
-        await cacheService.disconnect();
-        console.log('HTTP server closed');
-        process.exit(0);
+        try {
+            await Promise.allSettled([
+                UrlRepository.disconnect(),
+                cacheService.disconnect()
+            ]);
+            console.log('HTTP server closed');
+            process.exit(0);
+        } catch (error) {
+            console.error('Error during shutdown:', error);
+            process.exit(1);
+        }
     });
 });
 
 process.on('SIGINT', async () => {
     console.log('SIGINT signal received: closing HTTP server');
     server.close(async () => {
-        await UrlRepository.disconnect();
-        await cacheService.disconnect();
-        console.log('HTTP server closed');
-        process.exit(0);
+        try {
+            await Promise.allSettled([
+                UrlRepository.disconnect(),
+                cacheService.disconnect()
+            ]);
+            console.log('HTTP server closed');
+            process.exit(0);
+        } catch (error) {
+            console.error('Error during shutdown:', error);
+            process.exit(1);
+        }
     });
 });
 
