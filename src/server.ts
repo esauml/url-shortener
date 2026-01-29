@@ -17,34 +17,38 @@ const server = app.listen(PORT, () => {
 process.on('SIGTERM', async () => {
     console.log('SIGTERM signal received: closing HTTP server');
     server.close(async () => {
-        try {
-            await Promise.allSettled([
-                UrlRepository.disconnect(),
-                cacheService.disconnect()
-            ]);
-            console.log('HTTP server closed');
-            process.exit(0);
-        } catch (error) {
-            console.error('Error during shutdown:', error);
+        const results = await Promise.allSettled([
+            UrlRepository.disconnect(),
+            cacheService.disconnect()
+        ]);
+
+        const failures = results.filter(r => r.status === 'rejected');
+        if (failures.length > 0) {
+            console.error('Errors during shutdown:', failures);
             process.exit(1);
         }
+
+        console.log('HTTP server closed');
+        process.exit(0);
     });
 });
 
 process.on('SIGINT', async () => {
     console.log('SIGINT signal received: closing HTTP server');
     server.close(async () => {
-        try {
-            await Promise.allSettled([
-                UrlRepository.disconnect(),
-                cacheService.disconnect()
-            ]);
-            console.log('HTTP server closed');
-            process.exit(0);
-        } catch (error) {
-            console.error('Error during shutdown:', error);
+        const results = await Promise.allSettled([
+            UrlRepository.disconnect(),
+            cacheService.disconnect()
+        ]);
+
+        const failures = results.filter(r => r.status === 'rejected');
+        if (failures.length > 0) {
+            console.error('Errors during shutdown:', failures);
             process.exit(1);
         }
+
+        console.log('HTTP server closed');
+        process.exit(0);
     });
 });
 

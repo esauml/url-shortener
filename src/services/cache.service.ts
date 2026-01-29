@@ -8,7 +8,8 @@ class CacheService {
 
     constructor() {
         const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-        this.ttl = parseInt(process.env.REDIS_TTL || '3600', 10);
+        const ttl = process.env.REDIS_TTL ? parseInt(process.env.REDIS_TTL, 10) : 3600;
+        this.ttl = Number.isFinite(ttl) && ttl > 0 ? ttl : 3600;
 
         this.client = new Redis(redisUrl, {
             maxRetriesPerRequest: 3,

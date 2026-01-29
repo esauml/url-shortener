@@ -6,7 +6,7 @@ const workerId = process.env.WORKER_ID || process.env.HOSTNAME || '0';
 export const shortenUrl = async (req: Request, res: Response) => {
     const { url } = req.body;
 
-    // create short URL (generate code with snowflake, collision free)
+    // create short URL (generate code with Snowflake-style IDs, designed to minimize collisions)
     // store it in DB (Postgres + Redis cache, scalable DB needed)
     // return response code to user (only necessary data)
 
