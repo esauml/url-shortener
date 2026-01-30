@@ -8,6 +8,10 @@ export const shortenUrl = async (req: Request, res: Response, next: NextFunction
     try {
         const { url } = req.body;
 
+        if (!url || typeof url !== 'string') {
+            throw new ValidationError("Invalid URL");
+        }
+
         const shortUrl = await UrlService.createShortUrl(url);
         console.log(`[Worker ${workerId}] Generated code: ${shortUrl.code} for ${url}`);
         res.status(201).json({
