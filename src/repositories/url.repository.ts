@@ -20,9 +20,7 @@ export const UrlRepository = {
         };
 
         // Set in cache for immediate availability (fire-and-forget)
-        cacheService.set(created.code, shortUrl).catch((err) => {
-            console.error('Failed to cache new short URL:', err);
-        });
+        cacheService.set(created.code, shortUrl);
 
         return shortUrl;
     },
@@ -50,9 +48,7 @@ export const UrlRepository = {
         };
 
         // Populate cache for next time (fire-and-forget)
-        cacheService.set(code, shortUrl).catch((err) => {
-            console.error('Failed to populate cache for short URL:', err);
-        });
+        cacheService.set(code, shortUrl);
 
         return shortUrl;
     },
