@@ -1,4 +1,5 @@
 import { getWorkerId } from "./getWorkerId";
+import { ValidationError, DatabaseError } from "../errors/AppError";
 
 export class Snowflake {
   private static readonly EPOCH = 1704067200000n;
@@ -26,7 +27,7 @@ export class Snowflake {
       workerId < 0 ||
       BigInt(workerId) > Snowflake.MAX_WORKER_ID
     ) {
-      throw new Error(
+      throw new ValidationError(
         `workerId must be between 0 and ${Snowflake.MAX_WORKER_ID}`
       );
     }
@@ -36,9 +37,9 @@ export class Snowflake {
     let timestamp = this.currentTimestamp();
 
     if (timestamp < this.lastTimestamp) {
-      throw new Error(
-        `Clock moved backwards. Refusing for ${this.lastTimestamp - timestamp
-        } ms`
+      throw new DatabaseError(
+        `Clock moved backwards. Refusing for ${this.lastTimestamp - timestamp} ms`,
+        false // Non-operational - indicates system clock issue
       );
     }
 

@@ -1,70 +1,86 @@
 import { PrismaClient } from "@prisma/client";
 import { ShortUrl } from "../types/url";
 import { cacheService } from "../services/cache.service";
+import { DatabaseError } from "../errors/AppError";
 
 const prisma = new PrismaClient();
 
 export const UrlRepository = {
     async save(data: Omit<ShortUrl, "createdAt">): Promise<ShortUrl> {
-        const created = await prisma.shortUrl.create({
-            data: {
-                code: data.code,
-                originalUrl: data.originalUrl,
-            },
-        });
+        try {
+            const created = await prisma.shortUrl.create({
+                data: {
+                    code: data.code,
+                    originalUrl: data.originalUrl,
+                },
+            });
 
-        const shortUrl: ShortUrl = {
-            code: created.code,
-            originalUrl: created.originalUrl,
-            createdAt: created.createdAt,
-        };
+            const shortUrl: ShortUrl = {
+                code: created.code,
+                originalUrl: created.originalUrl,
+                createdAt: created.createdAt,
+            };
 
-        // Set in cache for immediate availability (fire-and-forget)
-        cacheService.set(created.code, shortUrl).catch((err) => {
-            console.error('Failed to cache new short URL:', err);
-        });
+            // Set in cache for immediate availability (fire-and-forget)
+            cacheService.set(created.code, shortUrl).catch((err) => {
+                console.error('Failed to cache new short URL:', err);
+            });
 
-        return shortUrl;
+            return shortUrl;
+        } catch (error) {
+            // Let Prisma errors bubble up to be handled by the error middleware
+            // This includes unique constraint violations, validation errors, etc.
+            throw error;
+        }
     },
 
     async findByCode(code: string): Promise<ShortUrl | undefined> {
-        // Try cache first
-        const cached = await cacheService.get(code);
-        if (cached) {
-            return cached;
+        try {
+            // Try cache first
+            const cached = await cacheService.get(code);
+            if (cached) {
+                return cached;
+            }
+
+            // Fallback to database
+            const url = await prisma.shortUrl.findUnique({
+                where: { code },
+            });
+
+            if (!url) {
+                return undefined;
+            }
+
+            const shortUrl: ShortUrl = {
+                code: url.code,
+                originalUrl: url.originalUrl,
+                createdAt: url.createdAt,
+            };
+
+            // Populate cache for next time (fire-and-forget)
+            cacheService.set(code, shortUrl).catch((err) => {
+                console.error('Failed to populate cache for short URL:', err);
+            });
+
+            return shortUrl;
+        } catch (error) {
+            // Let Prisma errors bubble up to be handled by the error middleware
+            throw error;
         }
-
-        // Fallback to database
-        const url = await prisma.shortUrl.findUnique({
-            where: { code },
-        });
-
-        if (!url) {
-            return undefined;
-        }
-
-        const shortUrl: ShortUrl = {
-            code: url.code,
-            originalUrl: url.originalUrl,
-            createdAt: url.createdAt,
-        };
-
-        // Populate cache for next time (fire-and-forget)
-        cacheService.set(code, shortUrl).catch((err) => {
-            console.error('Failed to populate cache for short URL:', err);
-        });
-
-        return shortUrl;
     },
 
     async getNextId(): Promise<number> {
-        // Get the highest ID from the database
-        const lastUrl = await prisma.shortUrl.findFirst({
-            orderBy: { id: "desc" },
-            select: { id: true },
-        });
+        try {
+            // Get the highest ID from the database
+            const lastUrl = await prisma.shortUrl.findFirst({
+                orderBy: { id: "desc" },
+                select: { id: true },
+            });
 
-        return lastUrl ? lastUrl.id + 1 : 1;
+            return lastUrl ? lastUrl.id + 1 : 1;
+        } catch (error) {
+            throw new DatabaseError('Failed to get next ID from database');
+        }
     },
 
     // Helper method to disconnect Prisma when app shuts down
