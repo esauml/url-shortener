@@ -25,7 +25,7 @@ class CacheService {
         });
 
         this.client.on('error', (err) => {
-            console.error('Redis error:', err.message);
+            console.error('Redis error:', err.stack || err);
         });
 
         this.client.on('close', () => {
