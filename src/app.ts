@@ -1,7 +1,7 @@
 import express from 'express';
 
-import urlRouter from './routes/url.routes';
-import { errorHandler, requestIdMiddleware } from './middleware/errorHandler';
+import urlRouter from '@/routes/url.routes';
+import { errorHandler, requestIdMiddleware } from '@/middleware/errorHandler';
 
 const app = express();
 

@@ -1,8 +1,8 @@
-import { ValidationError, NotFoundError } from "../errors/AppError";
-import { UrlRepository } from "../repositories/url.repository";
-import { ShortUrl } from "../types/url";
-import { createSnowflake, toBase62 } from "../utils/snowflake";
-import { isValidUrl } from "../utils/validateUrl";
+import { ValidationError, NotFoundError } from "@/errors/AppError";
+import { UrlRepository } from "@/repositories/url.repository";
+import { ShortUrl } from "@/types/url";
+import { createSnowflake, toBase62 } from "@/utils/snowflake";
+import { isValidUrl } from "@/utils/validateUrl";
 
 const snowflake = createSnowflake();
 

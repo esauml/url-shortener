@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { UrlService } from "../services/url.service";
-import { ValidationError } from "../errors/AppError";
+import { UrlService } from "@/services/url.service";
+import { ValidationError } from "@/errors/AppError";
 
 const workerId = process.env.WORKER_ID || process.env.HOSTNAME || '0';
 
