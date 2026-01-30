@@ -34,12 +34,7 @@ class CacheService {
     }
 
     async connect(): Promise<void> {
-        try {
-            await this.client.connect();
-        } catch (error) {
-            console.error('Failed to connect to Redis:', error);
-            throw error;
-        }
+        await this.client.connect();
     }
 
     async get(code: string): Promise<ShortUrl | null> {
