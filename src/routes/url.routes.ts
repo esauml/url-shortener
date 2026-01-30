@@ -4,7 +4,7 @@ import { shortenUrl, redirectUrl } from "../controllers/url.controller";
 
 const router = Router();
 
-router.post('/', shortenUrl);
 router.get('/:code', redirectUrl);
+router.post('/', shortenUrl);
 
 export default router;
