@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { ShortUrl } from '../types/url';
+import { ShortUrl } from '@/types/url';
 
 class CacheService {
     private client: Redis;

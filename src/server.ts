@@ -1,6 +1,6 @@
-import app from './app';
-import { UrlRepository } from './repositories/url.repository';
-import { cacheService } from './services/cache.service';
+import app from '@/app';
+import { UrlRepository } from '@/repositories/url.repository';
+import { cacheService } from '@/services/cache.service';
 
 const PORT = process.env.PORT || 3000;
 

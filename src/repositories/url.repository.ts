@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { ShortUrl } from "../types/url";
-import { cacheService } from "../services/cache.service";
+import { ShortUrl } from "@/types/url";
+import { cacheService } from "@/services/cache.service";
 
 const prisma = new PrismaClient();
 
