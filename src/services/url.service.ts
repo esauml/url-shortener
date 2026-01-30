@@ -23,8 +23,13 @@ export const UrlService = {
         return await UrlRepository.save(shortUrl);
     },
 
-    async getOriginalUrl(code: string): Promise<string | null> {
+    async getOriginalUrl(code: string): Promise<string> {
         const record = await UrlRepository.findByCode(code);
-        return record?.originalUrl ?? null;
+
+        if (!record) {
+            throw new NotFoundError("URL not found");
+        }
+
+        return record.originalUrl;
     }
 };

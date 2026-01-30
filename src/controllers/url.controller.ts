@@ -30,10 +30,6 @@ export const redirectUrl = async (req: Request, res: Response, next: NextFunctio
 
         const originalUrl = await UrlService.getOriginalUrl(code);
 
-        if (!originalUrl) {
-            throw new ValidationError("URL not found");
-        }
-
         console.log(`[Worker ${workerId}] Redirecting ${code} -> ${originalUrl}`);
         res.redirect(302, originalUrl);
     } catch (error) {
