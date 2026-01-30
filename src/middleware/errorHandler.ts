@@ -105,7 +105,7 @@ export const requestIdMiddleware = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Generate simple request ID (timestamp + random)
+  // Generate simple request ID (UUID)
   (req as any).id = randomUUID();
   next();
 };

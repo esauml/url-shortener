@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { ShortUrl } from "../types/url";
 import { cacheService } from "../services/cache.service";
-import { DatabaseError } from "../errors/AppError";
 
 const prisma = new PrismaClient();
 
