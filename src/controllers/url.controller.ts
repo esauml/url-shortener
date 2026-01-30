@@ -1,16 +1,17 @@
-import { Request, Response } from "express";
-import { UrlService } from "../services/url.service";
+import { Request, Response, NextFunction } from "express";
+import { UrlService } from "@/services/url.service";
+import { ValidationError } from "@/errors/AppError";
 
 const workerId = process.env.WORKER_ID || process.env.HOSTNAME || '0';
 
-export const shortenUrl = async (req: Request, res: Response) => {
-    const { url } = req.body;
-
-    // create short URL (generate code with Snowflake-style IDs, designed to minimize collisions)
-    // store it in DB (Postgres + Redis cache, scalable DB needed)
-    // return response code to user (only necessary data)
-
+export const shortenUrl = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const { url } = req.body;
+
+        if (!url || typeof url !== 'string') {
+            throw new ValidationError("Invalid URL");
+        }
+
         const shortUrl = await UrlService.createShortUrl(url);
         console.log(`[Worker ${workerId}] Generated code: ${shortUrl.code} for ${url}`);
         res.status(201).json({
@@ -18,25 +19,25 @@ export const shortenUrl = async (req: Request, res: Response) => {
             shortCode: shortUrl.code,
             workerId: workerId
         });
-    } catch (err: any) {
-        console.error(`[Worker ${workerId}] Error shortening URL:`, err.message);
-        res.status(400).json({ message: err.message });
+    } catch (error) {
+        next(error);
     }
 };
 
-export const redirectUrl = async (req: Request, res: Response) => {
-    const { code } = req.params;
+export const redirectUrl = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { code } = req.params;
 
-    if (!code || typeof code !== 'string') {
-        return res.status(400).json({ message: "Invalid code" });
+        if (!code || typeof code !== 'string') {
+            throw new ValidationError("Invalid code");
+        }
+
+        const originalUrl = await UrlService.getOriginalUrl(code);
+
+        console.log(`[Worker ${workerId}] Redirecting ${code} -> ${originalUrl}`);
+        res.redirect(302, originalUrl);
+    } catch (error) {
+        next(error);
     }
-
-    const originalUrl = await UrlService.getOriginalUrl(code);
-
-    if (!originalUrl) {
-        return res.status(404).json({ message: "URL not found" });
-    }
-
-    console.log(`[Worker ${workerId}] Redirecting ${code} -> ${originalUrl}`);
-    res.redirect(302, originalUrl);
 };
+

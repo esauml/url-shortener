@@ -1,8 +1,12 @@
 import express from 'express';
 
-import urlRouter from './routes/url.routes';
+import urlRouter from '@/routes/url.routes';
+import { errorHandler, requestIdMiddleware } from '@/middleware/errorHandler';
 
 const app = express();
+
+// Add request ID to each request for tracing
+app.use(requestIdMiddleware);
 
 app.use(express.json());
 
@@ -12,5 +16,8 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/', urlRouter);
+
+// Global error handling middleware (must be last)
+app.use(errorHandler);
 
 export default app;
