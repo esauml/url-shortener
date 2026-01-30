@@ -4,7 +4,10 @@ import { ShortUrl } from '../types/url';
 class CacheService {
     private client: Redis;
     private ttl: number;
-    private isConnected: boolean = false;
+
+    private get isReady(): boolean {
+        return this.client.status === 'ready';
+    }
 
     constructor() {
         const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -17,18 +20,15 @@ class CacheService {
             lazyConnect: true,
         });
 
-        this.client.on('connect', () => {
-            this.isConnected = true;
-            console.log('Redis connected');
+        this.client.on('ready', () => {
+            console.log('Redis connected and ready');
         });
 
         this.client.on('error', (err) => {
-            this.isConnected = false;
             console.error('Redis error:', err.message);
         });
 
         this.client.on('close', () => {
-            this.isConnected = false;
             console.log('Redis connection closed');
         });
     }
@@ -38,13 +38,12 @@ class CacheService {
             await this.client.connect();
         } catch (error) {
             console.error('Failed to connect to Redis:', error);
-            this.isConnected = false;
             throw error;
         }
     }
 
     async get(code: string): Promise<ShortUrl | null> {
-        if (!this.isConnected) {
+        if (!this.isReady) {
             return null;
         }
 
@@ -66,7 +65,7 @@ class CacheService {
     }
 
     async set(code: string, url: ShortUrl): Promise<void> {
-        if (!this.isConnected) {
+        if (!this.isReady) {
             return;
         }
 
@@ -83,9 +82,17 @@ class CacheService {
 
     async disconnect(): Promise<void> {
         try {
-            await this.client.quit();
+            // Only quit if actually connected and ready
+            if (this.client.status === 'ready') {
+                await this.client.quit();
+            } else {
+                // Never connected or already closed - force disconnect
+                this.client.disconnect();
+            }
         } catch (error) {
             console.error('Redis disconnect error:', error);
+            // Force disconnect as fallback
+            this.client.disconnect();
         }
     }
 }
