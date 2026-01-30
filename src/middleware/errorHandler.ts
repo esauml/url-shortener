@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/AppError';
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 /**
  * Global error handling middleware
@@ -105,6 +106,6 @@ export const requestIdMiddleware = (
   next: NextFunction
 ): void => {
   // Generate simple request ID (timestamp + random)
-  (req as any).id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  (req as any).id = randomUUID();
   next();
 };

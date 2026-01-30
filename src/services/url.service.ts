@@ -26,9 +26,7 @@ export const UrlService = {
     async getOriginalUrl(code: string): Promise<string> {
         const record = await UrlRepository.findByCode(code);
 
-        if (!record) {
-            throw new NotFoundError("URL not found");
-        }
+        if (!record) throw new NotFoundError("URL not found");
 
         return record.originalUrl;
     }
