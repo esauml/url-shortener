@@ -1,5 +1,5 @@
 import { getWorkerId } from "./getWorkerId";
-import { ValidationError, DatabaseError } from "../errors/AppError";
+import { ValidationError, SystemClockError } from "../errors/AppError";
 
 export class Snowflake {
   private static readonly EPOCH = 1704067200000n;
@@ -37,9 +37,8 @@ export class Snowflake {
     let timestamp = this.currentTimestamp();
 
     if (timestamp < this.lastTimestamp) {
-      throw new DatabaseError(
-        `Clock moved backwards. Refusing for ${this.lastTimestamp - timestamp} ms`,
-        false // Non-operational - indicates system clock issue
+      throw new SystemClockError(
+        `Clock moved backwards. Refusing for ${this.lastTimestamp - timestamp} ms`
       );
     }
 

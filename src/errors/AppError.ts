@@ -58,3 +58,14 @@ export class CacheError extends AppError {
     Object.setPrototypeOf(this, CacheError.prototype);
   }
 }
+
+/**
+ * 500 Internal Server Error - For system clock issues
+ * Non-operational by default as this indicates infrastructure/OS-level problems
+ */
+export class SystemClockError extends AppError {
+  constructor(message: string = 'System clock error detected', isOperational = false) {
+    super(message, 500, isOperational);
+    Object.setPrototypeOf(this, SystemClockError.prototype);
+  }
+}
