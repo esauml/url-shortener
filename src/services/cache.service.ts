@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { ShortUrl } from '@/types/url';
+import { config } from '@/config';
 
 class CacheService {
     private client: Redis;
@@ -10,9 +11,8 @@ class CacheService {
     }
 
     constructor() {
-        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-        const ttl = process.env.REDIS_TTL ? parseInt(process.env.REDIS_TTL, 10) : 3600;
-        this.ttl = Number.isFinite(ttl) && ttl > 0 ? ttl : 3600;
+        const redisUrl = config.redisUrl;
+        this.ttl = config.redisTtl;
 
         this.client = new Redis(redisUrl, {
             maxRetriesPerRequest: 3,
