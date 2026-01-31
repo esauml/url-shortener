@@ -1,38 +1,98 @@
 /**
  * Centralized configuration module for all environment variables
+ * Uses Zod for type-safe validation of environment variables
  */
 
-// Helper function to parse integers with fallback
-const parseIntWithFallback = (value: string | undefined, fallback: number): number => {
-    if (!value) return fallback;
-    const parsed = parseInt(value, 10);
-    return Number.isFinite(parsed) ? parsed : fallback;
+import { z } from 'zod';
+
+/**
+ * Environment variable schema with validation rules
+ * 
+ * Env vars:
+ * - PORT: Server port (1-65535), default: 3000
+ * - NODE_ENV: Environment mode, default: 'development'
+ * - DATABASE_URL: PostgreSQL connection string (required by Prisma)
+ * - REDIS_URL: Redis connection URL, default: 'redis://localhost:6379'
+ * - REDIS_TTL: Cache TTL in seconds (must be > 0), default: 3600
+ * - WORKER_ID: Explicit worker ID for distributed ID generation
+ * - HOSTNAME: Fallback identifier when WORKER_ID not set
+ * - DATACENTER_ID: Datacenter ID for Snowflake IDs, default: 0
+ */
+const envSchema = z.object({
+    PORT: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(65535)
+        .optional()
+        .default(3000),
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+    REDIS_URL: z.string().startsWith('redis://', 'REDIS_URL must be a valid Redis connection string').optional().default('redis://localhost:6379'),
+    REDIS_TTL: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .default(3600),
+    WORKER_ID: z.coerce.number().int().min(0).optional(),
+    HOSTNAME: z.string().optional(),
+    DATACENTER_ID: z.coerce.number().int().min(0).optional().default(0),
+});
+
+type EnvConfig = z.infer<typeof envSchema>;
+
+/**
+ * Parse and validate environment variables
+ * Throws on invalid configuration
+ */
+const parseConfig = (): EnvConfig => {
+    try {
+        return envSchema.parse(process.env);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            console.error('❌ Invalid environment configuration:');
+            error.issues.forEach((issue) => {
+                console.error(`  ${issue.path.join('.')}: ${issue.message}`);
+            });
+        }
+        throw new Error('Failed to load environment configuration');
+    }
 };
 
-// Helper function to parse and validate positive integers
-const parsePositiveInt = (value: string | undefined, fallback: number): number => {
-    if (!value) return fallback;
-    const parsed = parseInt(value, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+const env = parseConfig();
+
+/**
+ * Determine worker ID with priority:
+ * 1. Explicit WORKER_ID env var
+ * 2. Fallback to HOSTNAME if set
+ * 3. Default to 0
+ */
+const resolveWorkerId = (): number => {
+    if (env.WORKER_ID !== undefined) {
+        return env.WORKER_ID;
+    }
+    // HOSTNAME is typically a string hostname, so convert if needed
+    if (env.HOSTNAME) {
+        // Try to parse as number first
+        const parsed = parseInt(env.HOSTNAME, 10);
+        if (!isNaN(parsed)) {
+            return parsed;
+        }
+    }
+    return 0;
 };
 
-// Parse environment variables with defaults
+/**
+ * Validated configuration object
+ * All values are guaranteed to be valid and properly typed
+ */
 export const config = {
-    // Server configuration
-    port: parseIntWithFallback(process.env.PORT, 3000),
-    nodeEnv: process.env.NODE_ENV || 'development',
-
-    // Database configuration
-    databaseUrl: process.env.DATABASE_URL || '',
-
-    // Redis configuration
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-    redisTtl: parsePositiveInt(process.env.REDIS_TTL, 3600),
-
-    // Snowflake ID generation configuration
-    workerId: parseIntWithFallback(
-        process.env.WORKER_ID || process.env.HOSTNAME,
-        0
-    ),
-    datacenterId: parseIntWithFallback(process.env.DATACENTER_ID, 0),
+    port: env.PORT,
+    nodeEnv: env.NODE_ENV,
+    databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
+    redisTtl: env.REDIS_TTL,
+    workerId: resolveWorkerId(),
+    datacenterId: env.DATACENTER_ID,
 } as const;
