@@ -1,8 +1,15 @@
+/**
+ * List of allowed URL protocols for security and compatibility
+ * - http/https: Standard web protocols
+ * - ftp: File transfer protocol
+ * - file: Local file system access
+ */
+export const VALID_URL_PROTOCOLS = ['http:', 'https:', 'ftp:', 'file:'] as const;
+
 export const isValidUrl = (url: string): boolean => {
     try {
         const parsedUrl = new URL(url);
-        const validProtocols = ['http:', 'https:', 'ftp:', 'file:'];
-        if (!validProtocols.includes(parsedUrl.protocol)) {
+        if (!VALID_URL_PROTOCOLS.includes(parsedUrl.protocol as any)) {
             return false;
         }
         return true;

@@ -1,8 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { isValidUrl } from "@/utils/validateUrl";
+import { isValidUrl, VALID_URL_PROTOCOLS } from "@/utils/validateUrl";
 import { testUrls } from "../../fixtures/testData";
 
 describe("validateUrl", () => {
+    describe("VALID_URL_PROTOCOLS", () => {
+        it("should contain only safe protocols", () => {
+            expect(VALID_URL_PROTOCOLS).toEqual(['http:', 'https:', 'ftp:', 'file:']);
+        });
+
+        it("should be a readonly array", () => {
+            expect(Array.isArray(VALID_URL_PROTOCOLS)).toBe(true);
+        });
+    });
+
     describe("isValidUrl", () => {
         it("should return true for valid HTTP URLs", () => {
             expect(isValidUrl("http://example.com")).toBe(true);
