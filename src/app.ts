@@ -1,12 +1,13 @@
 import express from 'express';
 
 import urlRouter from '@/routes/url.routes';
-import { errorHandler, requestIdMiddleware } from '@/middleware/errorHandler';
+import { errorHandler } from '@/middleware/errorHandler';
+import { requestLogger } from '@/middleware/requestLogger';
 
 const app = express();
 
-// Add request ID to each request for tracing
-app.use(requestIdMiddleware);
+// Add request logger with request ID tracing (must be before routes)
+app.use(requestLogger);
 
 app.use(express.json());
 

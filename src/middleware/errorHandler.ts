@@ -14,13 +14,18 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Get request ID if available
-  const requestId = (req as any).id || 'unknown';
+  // Get request ID and logger from pino-http middleware
+  const requestId = req.id || 'unknown';
   const workerId = config.workerId;
+  const log = (req as any).log || console;
 
   // Handle known operational errors
   if (err instanceof AppError) {
-    console.error(`[Worker ${workerId}] [Request ${requestId}] ${err.constructor.name}: ${err.message}`);
+    log.error({
+      err: { name: err.constructor.name, message: err.message, statusCode: err.statusCode },
+      requestId,
+      workerId,
+    }, `${err.constructor.name}: ${err.message}`);
     
     res.status(err.statusCode).json({
       error: {
@@ -37,7 +42,11 @@ export const errorHandler = (
     err instanceof SyntaxError &&
     (err as any).type === 'entity.parse.failed'
   ) {
-    console.error(`[Worker ${workerId}] [Request ${requestId}] JSON parse error:`, err.message);
+    log.error({
+      err: { name: 'SyntaxError', message: err.message, type: 'entity.parse.failed' },
+      requestId,
+      workerId,
+    }, 'JSON parse error');
     res.status(400).json({
       error: {
         message: 'Invalid JSON payload',
@@ -50,7 +59,11 @@ export const errorHandler = (
 
   // Handle Prisma errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    console.error(`[Worker ${workerId}] [Request ${requestId}] Prisma error ${err.code}:`, err.message);
+    log.error({
+      err: { name: 'PrismaClientKnownRequestError', message: err.message, code: err.code, meta: err.meta },
+      requestId,
+      workerId,
+    }, `Prisma error ${err.code}`);
 
     // P2002: Unique constraint violation
     if (err.code === 'P2002') {
@@ -89,7 +102,11 @@ export const errorHandler = (
 
   // Handle Prisma validation errors
   if (err instanceof Prisma.PrismaClientValidationError) {
-    console.error(`[Worker ${workerId}] [Request ${requestId}] Prisma validation error:`, err.message);
+    log.error({
+      err: { name: 'PrismaClientValidationError', message: err.message },
+      requestId,
+      workerId,
+    }, 'Prisma validation error');
     res.status(400).json({
       error: {
         message: 'Invalid data provided',
@@ -101,8 +118,15 @@ export const errorHandler = (
   }
 
   // Handle unexpected errors
-  console.error(`[Worker ${workerId}] [Request ${requestId}] Unexpected error:`, err);
-  console.error('Stack trace:', err.stack);
+  log.error({
+    err: {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    },
+    requestId,
+    workerId,
+  }, 'Unexpected error');
 
   res.status(500).json({
     error: {
@@ -114,6 +138,7 @@ export const errorHandler = (
 };
 
 /**
+ * @deprecated Use requestLogger from @/middleware/requestLogger instead
  * Middleware to add a unique request ID to each request
  * Should be registered before routes in app.ts
  */

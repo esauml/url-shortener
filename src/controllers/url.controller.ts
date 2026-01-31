@@ -12,7 +12,14 @@ export const createUrlController = (urlService: UrlService, workerId: number) =>
             }
 
             const shortUrl = await urlService.createShortUrl(url);
-            console.log(`[Worker ${workerId}] Generated code: ${shortUrl.code} for ${url}`);
+
+            // Use request-scoped logger from pino-http middleware
+            (req as any).log?.info({
+                code: shortUrl.code,
+                url,
+                workerId,
+            }, 'Generated short URL');
+
             res.status(201).json({
                 shortUrl: `${req.protocol}://${req.get("host")}/${shortUrl.code}`,
                 shortCode: shortUrl.code,
@@ -33,7 +40,13 @@ export const createUrlController = (urlService: UrlService, workerId: number) =>
 
             const originalUrl = await urlService.getOriginalUrl(code);
 
-            console.log(`[Worker ${workerId}] Redirecting ${code} -> ${originalUrl}`);
+            // Use request-scoped logger from pino-http middleware
+            (req as any).log?.info({
+                code,
+                originalUrl,
+                workerId,
+            }, 'Redirecting to original URL');
+
             res.redirect(302, originalUrl);
         } catch (error) {
             next(error);
