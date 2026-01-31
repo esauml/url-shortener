@@ -101,13 +101,6 @@ export function createSnowflake(): Snowflake {
 }
 
 function getWorkerIdFromEnvironment(): number {
-  // Priority 1: Explicit WORKER_ID environment variable or hostname fallback
-  if (config.workerId !== 0) {
-    return config.workerId;
-  }
-
-  console.warn('WORKER_ID not set or is 0, deriving worker ID automatically.');
-  
-  // Priority 2: Derive from automatically assigned
-  return getWorkerId();
+  // config.workerId is already fully resolved (explicit or derived from hostname hash)
+  return config.workerId;
 }

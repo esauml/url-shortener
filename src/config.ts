@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { getWorkerId } from '@/utils/getWorkerId';
 
 /**
  * Environment variable schema with validation rules
@@ -35,7 +36,7 @@ const envSchema = z.object({
         .positive()
         .optional()
         .default(3600),
-    WORKER_ID: z.coerce.number().int().min(0).optional(),
+    WORKER_ID: z.coerce.number().int().min(0).max(1023).optional(),
     HOSTNAME: z.string().optional(),
     DATACENTER_ID: z.coerce.number().int().min(0).optional().default(0),
 });
@@ -63,24 +64,17 @@ const parseConfig = (): EnvConfig => {
 const env = parseConfig();
 
 /**
- * Determine worker ID with priority:
- * 1. Explicit WORKER_ID env var
- * 2. Fallback to HOSTNAME if set
- * 3. Default to 0
+ * Determine effective worker ID with priority:
+ * 1. Explicit WORKER_ID env var (0-1023)
+ * 2. Derive from hostname hash if WORKER_ID not set
+ * This ensures config.workerId always reflects the actual ID used by Snowflake
  */
 const resolveWorkerId = (): number => {
     if (env.WORKER_ID !== undefined) {
         return env.WORKER_ID;
     }
-    // HOSTNAME is typically a string hostname, so convert if needed
-    if (env.HOSTNAME) {
-        // Try to parse as number first
-        const parsed = parseInt(env.HOSTNAME, 10);
-        if (!isNaN(parsed)) {
-            return parsed;
-        }
-    }
-    return 0;
+    // Derive worker ID from hostname hash when not explicitly set
+    return getWorkerId();
 };
 
 /**
