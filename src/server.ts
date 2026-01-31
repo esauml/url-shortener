@@ -1,8 +1,9 @@
 import app from '@/app';
 import { UrlRepository } from '@/repositories/url.repository';
 import { cacheService } from '@/services/cache.service';
+import { config } from '@/config';
 
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
 // Initialize cache connection
 cacheService.connect().catch((err) => {

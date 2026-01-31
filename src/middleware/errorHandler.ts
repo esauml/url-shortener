@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '@/errors/AppError';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { config } from '@/config';
 
 /**
  * Global error handling middleware
@@ -15,7 +16,7 @@ export const errorHandler = (
 ): void => {
   // Get request ID if available
   const requestId = (req as any).id || 'unknown';
-  const workerId = process.env.WORKER_ID || process.env.HOSTNAME || '0';
+  const workerId = config.workerId;
 
   // Handle known operational errors
   if (err instanceof AppError) {
@@ -25,6 +26,22 @@ export const errorHandler = (
       error: {
         message: err.message,
         statusCode: err.statusCode,
+        requestId,
+      },
+    });
+    return;
+  }
+
+  // Handle malformed JSON payloads
+  if (
+    err instanceof SyntaxError &&
+    (err as any).type === 'entity.parse.failed'
+  ) {
+    console.error(`[Worker ${workerId}] [Request ${requestId}] JSON parse error:`, err.message);
+    res.status(400).json({
+      error: {
+        message: 'Invalid JSON payload',
+        statusCode: 400,
         requestId,
       },
     });

@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { UrlService } from "@/services/url.service";
 import { ValidationError } from "@/errors/AppError";
+import { config } from "@/config";
 
-const workerId = process.env.WORKER_ID || process.env.HOSTNAME || '0';
+const workerId = config.workerId;
 
 export const shortenUrl = async (req: Request, res: Response, next: NextFunction) => {
     try {

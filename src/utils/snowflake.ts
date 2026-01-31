@@ -1,5 +1,6 @@
 import { getWorkerId } from "./getWorkerId";
 import { ValidationError, SystemClockError } from "../errors/AppError";
+import { config } from '@/config';
 
 export class Snowflake {
   private static readonly EPOCH = 1704067200000n;
@@ -100,11 +101,6 @@ export function createSnowflake(): Snowflake {
 }
 
 function getWorkerIdFromEnvironment(): number {
-  // Priority 1: Explicit WORKER_ID environment variable
-  if (process.env.WORKER_ID) {
-    return parseInt(process.env.WORKER_ID, 10);
-  }
-
-  // Priority 2: Derive from automatically assigned
-  return getWorkerId();
+  // config.workerId is already fully resolved (explicit or derived from hostname hash)
+  return config.workerId;
 }
