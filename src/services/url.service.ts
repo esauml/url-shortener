@@ -1,18 +1,21 @@
 import { ValidationError, NotFoundError } from "@/errors/AppError";
 import { UrlRepository } from "@/repositories/url.repository";
 import { ShortUrl } from "@/types/url";
-import { createSnowflake, toBase62 } from "@/utils/snowflake";
+import { Snowflake, toBase62 } from "@/utils/snowflake";
 import { isValidUrl } from "@/utils/validateUrl";
 
-const snowflake = createSnowflake();
+export class UrlService {
+    constructor(
+        private urlRepository: UrlRepository,
+        private snowflake: Snowflake
+    ) { }
 
-export const UrlService = {
     async createShortUrl(originalUrl: string): Promise<ShortUrl> {
         if (!isValidUrl(originalUrl)) {
             throw new ValidationError("Invalid URL");
         }
 
-        const id = snowflake.generate();
+        const id = this.snowflake.generate();
         const code = toBase62(id)
 
         const shortUrl: Omit<ShortUrl, "createdAt"> = {
@@ -20,14 +23,14 @@ export const UrlService = {
             originalUrl,
         };
 
-        return await UrlRepository.save(shortUrl);
-    },
+        return await this.urlRepository.save(shortUrl);
+    }
 
     async getOriginalUrl(code: string): Promise<string> {
-        const record = await UrlRepository.findByCode(code);
+        const record = await this.urlRepository.findByCode(code);
 
         if (!record) throw new NotFoundError("URL not found");
 
         return record.originalUrl;
     }
-};
+}

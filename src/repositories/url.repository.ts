@@ -1,12 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { ShortUrl } from "@/types/url";
-import { cacheService } from "@/services/cache.service";
+import { CacheService } from "@/services/cache.service";
 
-const prisma = new PrismaClient();
+export class UrlRepository {
+    constructor(
+        private prisma: PrismaClient,
+        private cacheService: CacheService
+    ) { }
 
-export const UrlRepository = {
     async save(data: Omit<ShortUrl, "createdAt">): Promise<ShortUrl> {
-        const created = await prisma.shortUrl.create({
+        const created = await this.prisma.shortUrl.create({
             data: {
                 code: data.code,
                 originalUrl: data.originalUrl,
@@ -20,20 +23,20 @@ export const UrlRepository = {
         };
 
         // Set in cache for immediate availability (fire-and-forget)
-        cacheService.set(created.code, shortUrl);
+        this.cacheService.set(created.code, shortUrl);
 
         return shortUrl;
-    },
+    }
 
     async findByCode(code: string): Promise<ShortUrl | undefined> {
         // Try cache first
-        const cached = await cacheService.get(code);
+        const cached = await this.cacheService.get(code);
         if (cached) {
             return cached;
         }
 
         // Fallback to database
-        const url = await prisma.shortUrl.findUnique({
+        const url = await this.prisma.shortUrl.findUnique({
             where: { code },
         });
 
@@ -48,23 +51,23 @@ export const UrlRepository = {
         };
 
         // Populate cache for next time (fire-and-forget)
-        cacheService.set(code, shortUrl);
+        this.cacheService.set(code, shortUrl);
 
         return shortUrl;
-    },
+    }
 
     async getNextId(): Promise<number> {
         // Get the highest ID from the database
-        const lastUrl = await prisma.shortUrl.findFirst({
+        const lastUrl = await this.prisma.shortUrl.findFirst({
             orderBy: { id: "desc" },
             select: { id: true },
         });
 
         return lastUrl ? lastUrl.id + 1 : 1;
-    },
+    }
 
     // Helper method to disconnect Prisma when app shuts down
     async disconnect(): Promise<void> {
-        await prisma.$disconnect();
-    },
-};
+        await this.prisma.$disconnect();
+    }
+}

@@ -1,12 +1,11 @@
 import app from '@/app';
-import { UrlRepository } from '@/repositories/url.repository';
-import { cacheService } from '@/services/cache.service';
+import { container } from '@/container';
 import { config } from '@/config';
 
 const PORT = config.port;
 
 // Initialize cache connection
-cacheService.connect().catch((err) => {
+container.cacheService.connect().catch((err) => {
     console.error('Failed to initialize cache:', err);
 });
 
@@ -19,8 +18,8 @@ const handleGracefulShutdown = (signal: string) => async () => {
     console.log(`${signal} signal received: closing HTTP server`);
     server.close(async () => {
         const results = await Promise.allSettled([
-            UrlRepository.disconnect(),
-            cacheService.disconnect()
+            container.urlRepository.disconnect(),
+            container.cacheService.disconnect()
         ]);
 
         const failures = results.filter(r => r.status === 'rejected');
