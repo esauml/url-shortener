@@ -32,6 +32,22 @@ export const errorHandler = (
     return;
   }
 
+  // Handle malformed JSON payloads
+  if (
+    err instanceof SyntaxError &&
+    (err as any).type === 'entity.parse.failed'
+  ) {
+    console.error(`[Worker ${workerId}] [Request ${requestId}] JSON parse error:`, err.message);
+    res.status(400).json({
+      error: {
+        message: 'Invalid JSON payload',
+        statusCode: 400,
+        requestId,
+      },
+    });
+    return;
+  }
+
   // Handle Prisma errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     console.error(`[Worker ${workerId}] [Request ${requestId}] Prisma error ${err.code}:`, err.message);
