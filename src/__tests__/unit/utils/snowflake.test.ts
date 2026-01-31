@@ -1,3 +1,4 @@
+import "../../fixtures/mockConfig";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Snowflake, toBase62, createSnowflake } from "@/utils/snowflake";
 import { ValidationError, SystemClockError } from "@/errors/AppError";
