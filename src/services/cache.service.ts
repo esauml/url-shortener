@@ -1,8 +1,7 @@
 import Redis from 'ioredis';
 import { ShortUrl } from '@/types/url';
-import { config } from '@/config';
 
-class CacheService {
+export class CacheService {
     private client: Redis;
     private ttl: number;
 
@@ -10,15 +9,9 @@ class CacheService {
         return this.client.status === 'ready';
     }
 
-    constructor() {
-        const redisUrl = config.redisUrl;
-        this.ttl = config.redisTtl;
-
-        this.client = new Redis(redisUrl, {
-            maxRetriesPerRequest: 3,
-            enableReadyCheck: true,
-            lazyConnect: true,
-        });
+    constructor(client: Redis, ttl: number) {
+        this.client = client;
+        this.ttl = ttl;
 
         this.client.on('ready', () => {
             console.log('Redis connected and ready');
@@ -91,5 +84,3 @@ class CacheService {
         }
     }
 }
-
-export const cacheService = new CacheService();
