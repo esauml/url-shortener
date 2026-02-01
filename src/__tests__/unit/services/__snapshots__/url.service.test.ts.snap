@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UrlService > createShortUrl > should create a short URL for valid input 1`] = `
+{
+  "code": "1",
+  "createdAt": 2026-01-31T12:00:00.000Z,
+  "originalUrl": "https://example.com",
+}
+`;

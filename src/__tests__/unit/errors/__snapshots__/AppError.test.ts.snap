@@ -1,0 +1,55 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AppError > should create CacheError with 500 status and non-operational by default 1`] = `
+{
+  "isOperational": false,
+  "message": "Cache down",
+  "name": "Error",
+  "statusCode": 500,
+}
+`;
+
+exports[`AppError > should create DatabaseError with 500 status 1`] = `
+{
+  "isOperational": true,
+  "message": "DB failed",
+  "name": "Error",
+  "statusCode": 500,
+}
+`;
+
+exports[`AppError > should create NotFoundError with 404 status 1`] = `
+{
+  "isOperational": true,
+  "message": "Missing resource",
+  "name": "Error",
+  "statusCode": 404,
+}
+`;
+
+exports[`AppError > should create SystemClockError with 500 status and non-operational by default 1`] = `
+{
+  "isOperational": false,
+  "message": "Clock drift",
+  "name": "Error",
+  "statusCode": 500,
+}
+`;
+
+exports[`AppError > should create ValidationError with 400 status 1`] = `
+{
+  "isOperational": true,
+  "message": "Invalid input",
+  "name": "Error",
+  "statusCode": 400,
+}
+`;
+
+exports[`AppError > should create base error with provided values 1`] = `
+{
+  "isOperational": false,
+  "message": "Base error",
+  "name": "Error",
+  "statusCode": 418,
+}
+`;
