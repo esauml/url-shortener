@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import { ShortUrl } from "@/types/url";
-import { createShortUrl } from "./testData";
+import { createShortUrl, testTimestamps } from "./testData";
 
 /**
  * Mock factory for Prisma Client
@@ -69,7 +69,7 @@ export function createMockSnowflake(workerId = 0) {
         workerId,
         generate: vi.fn(() => {
             // Generate deterministic IDs for testing
-            const timestamp = BigInt(Date.now() - 1704067200000);
+            const timestamp = BigInt(Date.now() - testTimestamps.epoch);
             const id = (timestamp << 22n) | (BigInt(workerId) << 12n) | BigInt(sequence++);
             return id;
         }),

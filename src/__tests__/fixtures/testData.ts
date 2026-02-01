@@ -31,6 +31,10 @@ export const testCodes = {
 
 /**
  * Factory function to create ShortUrl test objects
+ * 
+ * Note: The hardcoded date (2026-01-31T12:00:00Z) is intentional for snapshot reproducibility.
+ * After this date passes, snapshots using this test data will need to be regenerated.
+ * Consider using relative dates or mocking Date.now() if maintainability becomes a concern.
  */
 export function createShortUrl(overrides?: Partial<ShortUrl>): ShortUrl {
     return {
@@ -58,7 +62,7 @@ export function createShortUrls(count: number): ShortUrl[] {
  * Test timestamps for Snowflake tests
  */
 export const testTimestamps = {
-    epoch: 1704067200000, // 2024-01-01T00:00:00Z
+    epoch: 1704067200000, // 2024-01-01T00:00:00Z - must match Snowflake.EPOCH in snowflake.ts
     valid: 1738329600000, // 2026-01-31T12:00:00Z
     future: 2000000000000, // 2033-05-18T03:33:20Z
 };
