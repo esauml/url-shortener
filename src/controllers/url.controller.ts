@@ -13,8 +13,8 @@ export const createUrlController = (urlService: UrlService, workerId: number) =>
 
             const shortUrl = await urlService.createShortUrl(url);
 
-            // Use request-scoped logger from pino-http middleware
-            (req as any).log?.info({
+            // Use request-scoped logger from pino-http middleware (typed via Express augmentation)
+            req.log.info({
                 code: shortUrl.code,
                 url,
                 workerId,
@@ -40,8 +40,8 @@ export const createUrlController = (urlService: UrlService, workerId: number) =>
 
             const originalUrl = await urlService.getOriginalUrl(code);
 
-            // Use request-scoped logger from pino-http middleware
-            (req as any).log?.info({
+            // Use request-scoped logger from pino-http middleware (typed via Express augmentation)
+            req.log.info({
                 code,
                 originalUrl,
                 workerId,

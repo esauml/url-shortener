@@ -3,10 +3,13 @@ import { AppError } from '@/errors/AppError';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { config } from '@/config';
+import { logger } from '@/logger';
+import { logError } from '@/utils/loggerHelpers';
 
 /**
  * Global error handling middleware
  * Must be registered after all routes in app.ts
+ * Uses structured error context for consistent error logging
  */
 export const errorHandler = (
   err: Error,
@@ -14,18 +17,22 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Get request ID and logger from pino-http middleware
+  // Get request ID from pino-http middleware, fallback to base logger if unavailable
   const requestId = req.id || 'unknown';
   const workerId = config.workerId;
-  const log = (req as any).log || console;
+
+  // Use request-scoped logger if available, otherwise fallback to base logger
+  // This ensures we have a logger even if middleware is misconfigured
+  const requestLog = req.log || logger.child({ requestId, workerId });
 
   // Handle known operational errors
   if (err instanceof AppError) {
-    log.error({
-      err: { name: err.constructor.name, message: err.message, statusCode: err.statusCode },
-      requestId,
-      workerId,
-    }, `${err.constructor.name}: ${err.message}`);
+    logError(requestLog, err, {
+      category: 'user',
+      code: err.constructor.name,
+      statusCode: err.statusCode,
+      message: err.message,
+    });
     
     res.status(err.statusCode).json({
       error: {
@@ -42,11 +49,13 @@ export const errorHandler = (
     err instanceof SyntaxError &&
     (err as any).type === 'entity.parse.failed'
   ) {
-    log.error({
-      err: { name: 'SyntaxError', message: err.message, type: 'entity.parse.failed' },
-      requestId,
-      workerId,
-    }, 'JSON parse error');
+    logError(requestLog, err, {
+      category: 'user',
+      code: 'INVALID_JSON',
+      statusCode: 400,
+      message: 'Invalid JSON payload',
+      context: { bodyContentLength: (req as any).socket?.bytesRead },
+    });
     res.status(400).json({
       error: {
         message: 'Invalid JSON payload',
@@ -59,41 +68,19 @@ export const errorHandler = (
 
   // Handle Prisma errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    log.error({
-      err: { name: 'PrismaClientKnownRequestError', message: err.message, code: err.code, meta: err.meta },
-      requestId,
-      workerId,
-    }, `Prisma error ${err.code}`);
+    const statusCode = errorCodeToStatusCode(err.code);
+    logError(requestLog, err, {
+      category: 'system',
+      code: `PRISMA_${err.code}`,
+      statusCode,
+      message: getPrismaErrorMessage(err.code),
+      context: { prismaCode: err.code, meta: err.meta },
+    });
 
-    // P2002: Unique constraint violation
-    if (err.code === 'P2002') {
-      res.status(409).json({
-        error: {
-          message: 'A record with this identifier already exists',
-          statusCode: 409,
-          requestId,
-        },
-      });
-      return;
-    }
-
-    // P2025: Record not found
-    if (err.code === 'P2025') {
-      res.status(404).json({
-        error: {
-          message: 'Resource not found',
-          statusCode: 404,
-          requestId,
-        },
-      });
-      return;
-    }
-
-    // Other Prisma errors as 500
-    res.status(500).json({
+    res.status(statusCode).json({
       error: {
-        message: 'Database operation failed',
-        statusCode: 500,
+        message: getPrismaErrorMessage(err.code),
+        statusCode,
         requestId,
       },
     });
@@ -102,11 +89,12 @@ export const errorHandler = (
 
   // Handle Prisma validation errors
   if (err instanceof Prisma.PrismaClientValidationError) {
-    log.error({
-      err: { name: 'PrismaClientValidationError', message: err.message },
-      requestId,
-      workerId,
-    }, 'Prisma validation error');
+    logError(requestLog, err, {
+      category: 'user',
+      code: 'PRISMA_VALIDATION_ERROR',
+      statusCode: 400,
+      message: 'Invalid data provided',
+    });
     res.status(400).json({
       error: {
         message: 'Invalid data provided',
@@ -118,15 +106,12 @@ export const errorHandler = (
   }
 
   // Handle unexpected errors
-  log.error({
-    err: {
-      name: err.name,
-      message: err.message,
-      stack: err.stack,
-    },
-    requestId,
-    workerId,
-  }, 'Unexpected error');
+  logError(requestLog, err, {
+    category: 'system',
+    code: 'UNEXPECTED_ERROR',
+    statusCode: 500,
+    message: 'An unexpected error occurred',
+  });
 
   res.status(500).json({
     error: {
@@ -135,6 +120,32 @@ export const errorHandler = (
       requestId,
     },
   });
+};
+
+/**
+ * Map Prisma error codes to HTTP status codes
+ */
+const errorCodeToStatusCode = (code: string): number => {
+  const codeMap: Record<string, number> = {
+    P2002: 409, // Unique constraint violation
+    P2025: 404, // Record not found
+    P2003: 404, // Foreign key constraint failure
+    P2015: 404, // Related record not found
+  };
+  return codeMap[code] ?? 500;
+};
+
+/**
+ * Get user-friendly error messages for Prisma error codes
+ */
+const getPrismaErrorMessage = (code: string): string => {
+  const messageMap: Record<string, string> = {
+    P2002: 'A record with this identifier already exists',
+    P2025: 'Resource not found',
+    P2003: 'Referenced resource does not exist',
+    P2015: 'Related record not found',
+  };
+  return messageMap[code] ?? 'Database operation failed';
 };
 
 /**
