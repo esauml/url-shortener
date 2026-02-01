@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { UrlRepository } from "@/repositories/url.repository";
 import { createShortUrl } from "../../fixtures/testData";
 import { createMockPrismaClient, createMockCacheService } from "../../fixtures/mocks";

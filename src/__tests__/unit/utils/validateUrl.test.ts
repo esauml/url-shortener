@@ -5,7 +5,7 @@ import { testUrls } from "../../fixtures/testData";
 describe("validateUrl", () => {
     describe("VALID_URL_PROTOCOLS", () => {
         it("should contain only safe protocols", () => {
-            expect(VALID_URL_PROTOCOLS).toEqual(['http:', 'https:', 'ftp:', 'file:']);
+            expect(VALID_URL_PROTOCOLS).toEqual(['http:', 'https:', 'ftp:']);
         });
 
         it("should be a readonly array", () => {
@@ -48,7 +48,6 @@ describe("validateUrl", () => {
 
         it("should return true for other valid protocols", () => {
             expect(isValidUrl("ftp://ftp.example.com")).toBe(true);
-            expect(isValidUrl("file:///path/to/file")).toBe(true);
         });
 
         it("should return false for strings without protocol", () => {
