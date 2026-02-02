@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`url.controller > redirectUrl > should redirect to the original URL 1`] = `
+[
+  302,
+  "https://example.com",
+]
+`;
+
+exports[`url.controller > shortenUrl > should create short URL and respond with JSON 1`] = `
+{
+  "shortCode": "abc123",
+  "shortUrl": "http://localhost:3000/abc123",
+  "workerId": 7,
+}
+`;

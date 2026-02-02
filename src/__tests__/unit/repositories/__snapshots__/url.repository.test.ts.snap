@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UrlRepository > findByCode > should fetch from database on cache miss and then cache it 1`] = `
+{
+  "code": "db",
+  "createdAt": 2026-01-31T12:00:00.000Z,
+  "originalUrl": "https://example.com",
+}
+`;
+
+exports[`UrlRepository > save > should create a short URL and cache it 1`] = `
+{
+  "code": "abc123",
+  "createdAt": 2026-01-31T12:00:00.000Z,
+  "originalUrl": "https://example.com",
+}
+`;
