@@ -1,6 +1,7 @@
 import { getWorkerId } from "./getWorkerId";
 import { ValidationError, SystemClockError } from "../errors/AppError";
 import { config } from '@/config';
+import { logger } from '@/logger';
 
 export class Snowflake {
   private static readonly EPOCH = 1704067200000n;
@@ -96,7 +97,7 @@ export function toBase62(num: bigint): string {
 export function createSnowflake(): Snowflake {
   const workerId = getWorkerIdFromEnvironment();
   const snowflake = new Snowflake(workerId);
-  console.log(`Snowflake generator initialized: Worker ID=${workerId}`);
+  logger.info({ workerId }, 'Snowflake generator initialized');
   return snowflake;
 }
 

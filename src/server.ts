@@ -1,21 +1,22 @@
 import app from '@/app';
 import { container } from '@/container';
 import { config } from '@/config';
+import { logger } from '@/logger';
 
 const PORT = config.port;
 
 // Initialize cache connection
 container.cacheService.connect().catch((err) => {
-    console.error('Failed to initialize cache:', err);
+    logger.error({ err }, 'Failed to initialize cache');
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    logger.info({ port: PORT }, 'Server is running');
 });
 
 // Graceful shutdown handler factory
 const handleGracefulShutdown = (signal: string) => async () => {
-    console.log(`${signal} signal received: closing HTTP server`);
+    logger.info({ signal }, 'Shutdown signal received, closing HTTP server');
     server.close(async () => {
         const results = await Promise.allSettled([
             container.urlRepository.disconnect(),
@@ -24,11 +25,11 @@ const handleGracefulShutdown = (signal: string) => async () => {
 
         const failures = results.filter(r => r.status === 'rejected');
         if (failures.length > 0) {
-            console.error('Errors during shutdown:', failures);
+            logger.error({ failures }, 'Errors during shutdown');
             process.exit(1);
         }
 
-        console.log('HTTP server closed');
+        logger.info('HTTP server closed');
         process.exit(0);
     });
 };

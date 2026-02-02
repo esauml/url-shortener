@@ -8,6 +8,7 @@ A distributed URL shortening service that converts long URLs into short, unique 
 - [API Documentation](#api-documentation)
 - [Architecture](#architecture)
 - [Development](#development)
+- [Logging](#logging)
 - [Deployment](#deployment)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
@@ -223,14 +224,80 @@ bash load-test.sh
 
 See [README.loadtest.md](README.loadtest.md) for performance benchmarks and scaling strategies.
 
+## Logging
+
+This service uses **Pino** for structured JSON logging with:
+- Automatic request ID generation and tracing
+- Request-scoped child loggers with context
+- Sensitive data redaction (URLs, credentials, tokens)
+- Configurable log levels and pretty printing for development
+- Structured error logging with categorization
+
+Key features:
+- **Development**: Pretty-printed, colorized logs for easy reading
+- **Production**: JSON-formatted logs for log aggregation services
+- **Request Tracing**: All logs include `requestId` for correlating requests across components
+- **Error Serialization**: Prisma and application errors are automatically flattened for searchability
+
+For comprehensive logging documentation, examples, and best practices, see [LOGGING.md](LOGGING.md).
+
+Quick setup:
+```bash
+# Development with pretty printing
+NODE_ENV=development LOG_PRETTY=true npm run dev
+
+# Production with JSON logging
+NODE_ENV=production LOG_LEVEL=info npm start
+```
+
 ### Environment Variables
 
 ```env
-DATABASE_URL          # PostgreSQL connection string
+# Database
+DATABASE_URL          # PostgreSQL connection string (required)
+
+# Server
 PORT                  # Server port (default: 3000)
-WORKER_ID             # Worker ID for Snowflake algorithm (0-1023)
-NODE_ENV              # Environment (development, production)
+NODE_ENV              # Environment: development, production, test (default: development)
+
+# Distributed ID Generation
+WORKER_ID             # Worker ID for Snowflake algorithm (0-1023, auto-derived if not set)
+DATACENTER_ID         # Datacenter ID for Snowflake algorithm (default: 0)
+
+# Logging Configuration
+LOG_LEVEL             # Log level: trace, debug, info, warn, error, fatal
+                      # Default: 'debug' in development, 'info' in production
+LOG_PRETTY            # Enable pretty printing for logs (default: true in development, false in production)
+
+# Redis Cache
+REDIS_URL             # Redis connection string (default: redis://localhost:6379)
+REDIS_TTL             # Cache TTL in seconds (default: 3600)
 ```
+
+For detailed logging configuration, see [LOGGING.md](LOGGING.md).
+
+## Deployment
+DATABASE_URL          # PostgreSQL connection string (required)
+
+# Server
+PORT                  # Server port (default: 3000)
+NODE_ENV              # Environment: development, production, test (default: development)
+
+# Distributed ID Generation
+WORKER_ID             # Worker ID for Snowflake algorithm (0-1023, auto-derived if not set)
+DATACENTER_ID         # Datacenter ID for Snowflake algorithm (default: 0)
+
+# Logging Configuration
+LOG_LEVEL             # Log level: trace, debug, info, warn, error, fatal
+                      # Default: 'debug' in development, 'info' in production
+LOG_PRETTY            # Enable pretty printing for logs (default: true in development, false in production)
+
+# Redis Cache
+REDIS_URL             # Redis connection string (default: redis://localhost:6379)
+REDIS_TTL             # Cache TTL in seconds (default: 3600)
+```
+
+For detailed logging configuration, see [LOGGING.md](LOGGING.md).
 
 ## Project Structure
 

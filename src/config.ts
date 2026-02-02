@@ -18,6 +18,8 @@ import { getWorkerId } from '@/utils/getWorkerId';
  * - WORKER_ID: Explicit worker ID for distributed ID generation
  * - HOSTNAME: Fallback identifier when WORKER_ID not set
  * - DATACENTER_ID: Datacenter ID for Snowflake IDs, default: 0
+ * - LOG_LEVEL: Logging level (trace, debug, info, warn, error, fatal), default: 'info' in production, 'debug' in development
+ * - LOG_PRETTY: Enable pretty printing for logs, default: true in development, false in production
  */
 const envSchema = z.object({
     PORT: z.coerce
@@ -39,6 +41,8 @@ const envSchema = z.object({
     WORKER_ID: z.coerce.number().int().min(0).max(1023).optional(),
     HOSTNAME: z.string().optional(),
     DATACENTER_ID: z.coerce.number().int().min(0).optional().default(0),
+    LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).optional(),
+    LOG_PRETTY: z.coerce.boolean().optional(),
 });
 
 type EnvConfig = z.infer<typeof envSchema>;
@@ -52,10 +56,19 @@ const parseConfig = (): EnvConfig => {
         return envSchema.parse(process.env);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            console.error('❌ Invalid environment configuration:');
-            error.issues.forEach((issue) => {
-                console.error(`  ${issue.path.join('.')}: ${issue.message}`);
-            });
+            // Format validation errors for structured output
+            const validationErrors = error.issues.map(issue => ({
+                path: issue.path.join('.'),
+                message: issue.message,
+            }));
+
+            // Use console.error here since logger is not yet initialized
+            // Logger depends on config, so we can't use it during config validation
+            console.error(JSON.stringify({
+                level: 'error',
+                msg: 'Invalid environment configuration',
+                validationErrors,
+            }));
         }
         throw new Error('Failed to load environment configuration');
     }
@@ -89,4 +102,6 @@ export const config = {
     redisTtl: env.REDIS_TTL,
     workerId: resolveWorkerId(),
     datacenterId: env.DATACENTER_ID,
+    logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'production' ? 'info' : 'debug'),
+    logPretty: env.LOG_PRETTY ?? (env.NODE_ENV !== 'production'),
 } as const;

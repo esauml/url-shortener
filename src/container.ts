@@ -6,6 +6,7 @@ import { CacheService } from "@/services/cache.service";
 import { UrlRepository } from "@/repositories/url.repository";
 import { UrlService } from "@/services/url.service";
 import { createSnowflake } from "@/utils/snowflake";
+import { logger } from "@/logger";
 
 export type Container = {
     prisma: PrismaClient;
@@ -23,10 +24,16 @@ export const createContainer = (): Container => {
         lazyConnect: true,
     });
 
-    const cacheService = new CacheService(redisClient, config.redisTtl);
+    // Create child logger for cache service
+    const cacheLogger = logger.child({ component: 'CacheService' });
+    const cacheService = new CacheService(redisClient, config.redisTtl, cacheLogger);
+
     const urlRepository = new UrlRepository(prisma, cacheService);
     const snowflake = createSnowflake();
-    const urlService = new UrlService(urlRepository, snowflake);
+
+    // Create child logger for URL service
+    const urlServiceLogger = logger.child({ component: 'UrlService' });
+    const urlService = new UrlService(urlRepository, snowflake, urlServiceLogger);
 
     return {
         prisma,

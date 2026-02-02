@@ -3,11 +3,13 @@ import { UrlRepository } from "@/repositories/url.repository";
 import { ShortUrl } from "@/types/url";
 import { Snowflake, toBase62 } from "@/utils/snowflake";
 import { isValidUrl } from "@/utils/validateUrl";
+import type { Logger } from 'pino';
 
 export class UrlService {
     constructor(
         private urlRepository: UrlRepository,
-        private snowflake: Snowflake
+        private snowflake: Snowflake,
+        private logger: Logger
     ) { }
 
     async createShortUrl(originalUrl: string): Promise<ShortUrl> {

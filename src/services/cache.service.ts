@@ -1,28 +1,31 @@
 import Redis from 'ioredis';
 import { ShortUrl } from '@/types/url';
+import type { Logger } from 'pino';
 
 export class CacheService {
     private client: Redis;
     private ttl: number;
+    private logger: Logger;
 
     private get isReady(): boolean {
         return this.client.status === 'ready';
     }
 
-    constructor(client: Redis, ttl: number) {
+    constructor(client: Redis, ttl: number, logger: Logger) {
         this.client = client;
         this.ttl = ttl;
+        this.logger = logger;
 
         this.client.on('ready', () => {
-            console.log('Redis connected and ready');
+            this.logger.info('Redis connected and ready');
         });
 
         this.client.on('error', (err) => {
-            console.error('Redis error:', err.stack || err);
+            this.logger.error({ err }, 'Redis error');
         });
 
         this.client.on('close', () => {
-            console.log('Redis connection closed');
+            this.logger.info('Redis connection closed');
         });
     }
 
@@ -47,7 +50,7 @@ export class CacheService {
                 createdAt: new Date(parsed.createdAt)
             };
         } catch (error) {
-            console.error('Cache get error:', error);
+            this.logger.error({ err: error, code }, 'Cache get error');
             return null;
         }
     }
@@ -64,7 +67,7 @@ export class CacheService {
                 JSON.stringify(url)
             );
         } catch (error) {
-            console.error('Cache set error:', error);
+            this.logger.error({ err: error, code }, 'Cache set error');
         }
     }
 
@@ -78,7 +81,7 @@ export class CacheService {
                 this.client.disconnect();
             }
         } catch (error) {
-            console.error('Redis disconnect error:', error);
+            this.logger.error({ err: error }, 'Redis disconnect error');
             // Force disconnect as fallback
             this.client.disconnect();
         }
